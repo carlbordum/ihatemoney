@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+    ihatemoney:
+        build: .
+        ports:
+            - 8000:8000
+        volumes:
+            - ./ihatemoney.cfg:/ihatemoney.cfg
+        command: ["gunicorn", "--reload", "-b", "0.0.0.0:8000", "ihatemoney.wsgi:application"]
+
+    mailhog:
+        image: mailhog/mailhog
+        ports:
+            - 1025:1025
+            - 8025:8025
