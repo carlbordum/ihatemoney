@@ -1,28 +1,24 @@
 FROM python:3.7-alpine
 
-ENV NIGHTLY="" \
-    DEBUG="False" \
-    SQLALCHEMY_DATABASE_URI="sqlite:////database/ihatemoney.db" \
-    SQLALCHEMY_TRACK_MODIFICATIONS="False" \
-    SECRET_KEY="tralala" \
-    MAIL_DEFAULT_SENDER="('Budget manager', 'budget@notmyidea.org')" \
-    MAIL_SERVER="localhost" \
-    MAIL_PORT=25 \
-    MAIL_USE_TLS=False \
-    MAIL_USE_SSL=False \
-    MAIL_USERNAME= \
-    MAIL_PASSWORD= \
-    ACTIVATE_DEMO_PROJECT="True" \
-    ADMIN_PASSWORD="" \
-    ALLOW_PUBLIC_PROJECT_CREATION="True" \
-    ACTIVATE_ADMIN_DASHBOARD="False"
+# Force the stdout and stderr streams from python to be unbuffered. See
+# https://docs.python.org/3/using/cmdline.html#cmdoption-u
+ENV PYTHONUNBUFFERED 1
 
-RUN apk update && apk add git gcc libc-dev libffi-dev openssl-dev wget &&\
-    mkdir -p /etc/ihatemoney &&\
-    pip install --no-cache-dir gunicorn pymysql;
+ENV IHATEMONEY_SETTINGS_FILE_PATH=/ihatemoney.cfg
 
-COPY ./conf/entrypoint.sh /entrypoint.sh
-
+WORKDIR /code/
 VOLUME /database
 EXPOSE 8000
-ENTRYPOINT ["/entrypoint.sh"]
+
+# Install wsgi server
+RUN pip install --no-cache-dir gunicorn==20.0.4
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install application
+COPY CONTRIBUTORS LICENSE README.rst ./
+COPY ihatemoney ./ihatemoney
+
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "ihatemoney.wsgi:application"]
